@@ -1,0 +1,6 @@
+NovaGen is a document question-answering application.
+NovaGen uses Gemini artificial intelligence.
+The interface uses a pastel pink theme.
+The project supports TXT, CSV, DOCX, and selectable-text PDF files.
+Users can upload documents and ask questions about them.
+The application uses pgvector for similarity search.

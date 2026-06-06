@@ -3,25 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --bg-base: #FFF5F7;
+  --bg-surface: #FFFFFF;
+  --bg-hover: #FFE8EE;
+  --pink-100: #FFD6E2;
+  --pink-300: #F9A8C9;
+  --pink-500: #EC4899;
+  --pink-600: #DB2777;
+  --text-primary: #1F1A1C;
+  --text-secondary: #6B5B63;
+  --text-muted: #B497A3;
+  --ai-bubble: #FFF0F5;
+  --user-bubble: #EC4899;
+  --radius: 14px;
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'DM Sans', sans-serif;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  color: var(--text-primary);
+  background: var(--bg-base);
+  background-image: radial-gradient(circle, rgba(236, 72, 153, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+  font-family: var(--font-body);
 }
