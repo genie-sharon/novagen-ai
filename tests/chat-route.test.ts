@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { APICallError } from "@ai-sdk/provider";
 
 // Mock ai module for streaming
 vi.mock("ai", async (importOriginal) => {
@@ -284,6 +285,52 @@ describe("POST /api/chat", () => {
     );
 
     expect(insertCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it("returns rate-limit message on 429 APICallError", async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "threads") return buildThreadMock();
+      if (table === "messages") return buildMessageMock();
+      if (table === "document_chunks") return buildDocChunksMock(0);
+      return { select: vi.fn(() => ({ eq: vi.fn() })) };
+    });
+
+    vi.mocked(streamText).mockImplementationOnce(() => {
+      throw new APICallError({
+        message: "Quota exceeded",
+        url: "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:streamGenerateContent",
+        requestBodyValues: {},
+        statusCode: 429,
+        isRetryable: true,
+      });
+    });
+
+    const res = await POST(
+      makeChatRequest([{ role: "user", content: "Hello" }], "thread-1")
+    );
+    const body = await res.json();
+    expect(res.status).toBe(429);
+    expect(body.error).toContain("AI usage limit");
+  });
+
+  it("returns safe message on Gemini config error", async () => {
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "threads") return buildThreadMock();
+      if (table === "messages") return buildMessageMock();
+      if (table === "document_chunks") return buildDocChunksMock(0);
+      return { select: vi.fn(() => ({ eq: vi.fn() })) };
+    });
+
+    vi.mocked(streamText).mockImplementationOnce(() => {
+      throw new Error("Gemini API configuration is invalid.");
+    });
+
+    const res = await POST(
+      makeChatRequest([{ role: "user", content: "Hello" }], "thread-1")
+    );
+    const body = await res.json();
+    expect(body.error).toContain("check the server configuration");
+    expect(body.error).not.toContain("Gemini API configuration");
   });
 
   it("API errors are returned safely without exposing credentials", async () => {

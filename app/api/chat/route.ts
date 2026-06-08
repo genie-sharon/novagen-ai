@@ -1,4 +1,4 @@
-import { streamText, convertToModelMessages, type UIMessage } from "ai";
+import { streamText, convertToModelMessages, type UIMessage, APICallError } from "ai";
 import { google } from "@/lib/gemini";
 import { createClient } from "@/lib/supabase/server";
 import { generateQuestionEmbedding } from "@/lib/embeddings";
@@ -165,13 +165,43 @@ ${context}
 
     return result.toUIMessageStreamResponse();
   } catch (error) {
-    console.error(
-      "CHAT_ROUTE_ERROR:",
-      error instanceof Error ? error.message : "Internal Server Error"
-    );
+    const isConfigError =
+      error instanceof Error &&
+      error.message.includes("Gemini API configuration");
+
+    if (isConfigError) {
+      console.error("CHAT_CONFIGURATION_ERROR");
+      return Response.json(
+        {
+          error:
+            "NovaGen could not generate a response. Please check the server configuration or try again later.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const isRateLimit =
+      (APICallError.isInstance(error) &&
+        (error as APICallError).statusCode === 429) ||
+      (error instanceof Error &&
+        /rate.?limit|quota|429|too many requests/i.test(error.message));
+
+    if (isRateLimit) {
+      console.error("GEMINI_RATE_LIMIT_ERROR");
+      return Response.json(
+        {
+          error:
+            "NovaGen has temporarily reached its AI usage limit. Please try again shortly.",
+        },
+        { status: 429 }
+      );
+    }
+
+    console.error("CHAT_PROVIDER_ERROR");
     return Response.json(
       {
-        error: "Unable to generate a response",
+        error:
+          "NovaGen could not generate a response. Please check the server configuration or try again later.",
       },
       { status: 500 }
     );

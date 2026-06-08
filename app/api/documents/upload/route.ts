@@ -208,15 +208,28 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    console.error("UPLOAD_FAILED_STAGE:", stage);
+
     const rawMessage =
       error instanceof Error ? error.message : String(error);
 
-    console.error("UPLOAD_FAILED_STAGE:", stage);
-    console.error("UPLOAD_FAILED_MESSAGE:", rawMessage);
-    console.error("UPLOAD_FAILED_ERROR:", error);
+    const isConfigError =
+      error instanceof Error &&
+      error.message.includes("Gemini API configuration");
+
+    if (isConfigError) {
+      console.error("UPLOAD_CONFIGURATION_ERROR");
+      return Response.json(
+        {
+          error:
+            "NovaGen could not process this document. Please check the server configuration or try again later.",
+        },
+        { status: 500 }
+      );
+    }
 
     const message = rawMessage.replace(
-      /(?:[A-Z_]+_KEY|key|secret|password|token|credential).*$/gmi,
+      /(?:[A-Z_]+_KEY|key|secret|password|token|credential|AIzaSy).*$/gmi,
       "sensitive information redacted"
     );
 
