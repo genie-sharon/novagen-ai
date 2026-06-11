@@ -1,49 +1,275 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NovaGen — AI Chat and Document Q&A Application
 
-## Getting Started
+NovaGen is an AI-powered conversational assistant inspired by ChatGPT. It allows users to create accounts, continue previous conversations, upload documents, and ask questions based on the information contained in those documents.
 
-First, run the development server:
+The application uses Gemini AI for response generation and embeddings, Supabase for authentication, database storage and document storage, and a Retrieval-Augmented Generation (RAG) pipeline for document-based question answering.
+
+## Live Application
+
+[Open NovaGen on Vercel](https://novagen-ai-sigma.vercel.app)
+
+## Source Code
+
+[View the GitHub Repository](https://github.com/genie-sharon/novagen-ai)
+
+---
+
+## Main Features
+
+### AI Chat
+
+* Gemini-powered conversational assistant
+* ChatGPT-inspired interface
+* Persistent chat-thread history
+* Ability to reopen and continue previous conversations
+* Readable streamed AI responses
+* Safe error handling for temporary AI usage limits
+
+### Authentication
+
+* User signup
+* User login
+* User logout
+* Protected chat routes
+* User-specific chat history
+
+### Document Question Answering
+
+* Upload documents using a compact paperclip attachment interface
+* Ask questions beneath the attached file
+* Extract text from uploaded documents
+* Split documents into searchable chunks
+* Generate embeddings using Gemini
+* Store indexed chunks in Supabase
+* Retrieve relevant document excerpts
+* Generate grounded answers using RAG
+
+### Supported Document Types
+
+* TXT
+* CSV
+* DOCX
+* Selectable-text PDF
+
+Legacy `.doc` files and image-only scanned PDFs are rejected with clear messages.
+
+### Document Upload Safety
+
+* Unique Supabase Storage paths prevent duplicate-filename conflicts
+* Filenames are sanitized safely
+* Files with spaces and parentheses are supported
+* Maximum upload size: 20 MB
+* Partial uploads are cleaned up after failures
+* Sensitive credentials are not exposed in browser errors
+
+---
+
+## Technology Stack
+
+### Main Application
+
+* Next.js 14
+* React
+* TypeScript
+* Tailwind CSS
+* Gemini API
+* Supabase Authentication
+* Supabase PostgreSQL
+* Supabase Storage
+* Vercel
+
+### Testing and Quality
+
+* Vitest
+* React Testing Library
+* ESLint
+* TypeScript validation
+* V8 coverage reports
+* Playwright browser tests
+
+### Supplementary Django Backend
+
+* Python
+* Django
+* Pylint
+* Django TestCase
+
+The Django backend is included as a supplementary API for internship code-quality and testing requirements. The primary NovaGen application continues to use Next.js, Supabase, and Gemini AI.
+
+---
+
+## Application Flow
+
+```text
+User logs in
+→ Starts or opens a chat
+→ Sends a normal AI question
+→ Uploads a document using the paperclip icon
+→ Document is uploaded to Supabase Storage
+→ Text is extracted and split into chunks
+→ Gemini embeddings are generated
+→ Indexed chunks are stored in Supabase
+→ User asks a question about the document
+→ Relevant chunks are retrieved
+→ Gemini generates a grounded answer
+```
+
+---
+
+## Main Project Structure
+
+```text
+novagen/
+├── app/                       # Next.js pages and API routes
+├── components/                # React UI components
+├── lib/                       # Gemini, Supabase, parsing and RAG utilities
+├── tests/                     # Automated frontend and API tests
+├── supabase/                  # Database schema and migration files
+├── django_backend/            # Supplementary Django API
+├── middleware.ts              # Route protection
+├── package.json
+└── README.md
+```
+
+---
+
+## Quality Results
+
+### Main Next.js Application
+
+| Check                 |                            Result |
+| --------------------- | --------------------------------: |
+| ESLint                | Passed with no warnings or errors |
+| TypeScript validation |                            Passed |
+| Automated tests       |                        168 passed |
+| Test files            |                         19 passed |
+| Statement coverage    |                            85.90% |
+| Branch coverage       |                            83.12% |
+| Function coverage     |                            75.00% |
+| Line coverage         |                            85.90% |
+| Production build      |                            Passed |
+
+### Supplementary Django Backend
+
+| Check                   |       Result |
+| ----------------------- | -----------: |
+| Django automated tests  |    21 passed |
+| Pylint score            |      9.95/10 |
+| Internship target       | Above 8.0/10 |
+| Health API              |      Working |
+| Document validation API |      Working |
+
+---
+
+## Run the Main NovaGen Application Locally
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/genie-sharon/novagen-ai.git
+cd novagen-ai
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Create `.env.local`
+
+Create a `.env.local` file in the project root.
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+GEMINI_API_KEY=
+```
+
+Add your own values locally.
+
+Do not commit `.env.local` to GitHub.
+
+### 4. Start the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Run the Main Application Checks
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint
+npm run test:typecheck
+npm run test:all
+npm run test:coverage
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Run the Supplementary Django Backend
 
-## Deploy on Vercel
+### Windows PowerShell
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```powershell
+cd django_backend
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py test
+python -m pylint --load-plugins=pylint_django --django-settings-module=config.settings core config manage.py
+python manage.py runserver
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Open:
 
-## Supplementary Django Backend
+```text
+http://127.0.0.1:8000/
+```
 
-The repository includes a small Django companion API under `django_backend/`. This is a supplementary module for internship requirements and **does not replace** the production NovaGen application, which remains Next.js-based with TypeScript, Supabase, and Gemini AI.
+Useful endpoints:
 
-Features:
+```text
+GET  /api/health/
+GET  /api/document-types/
+POST /api/validate-document/
+```
 
-- **Document validation service** — validates file types, extensions, and sizes
-- **JSON API endpoints** — health check, document types, document validation
-- **Django automated tests** — 18 tests covering all validation scenarios
-- **Pylint validation** — configured with `pylint-django`, score above 9/10
+---
 
-See `django_backend/README.md` for setup and usage.
+## Security Notes
+
+* API keys are stored only in environment variables.
+* `.env.local` is excluded from Git.
+* Supabase Storage uses unique document paths.
+* Gemini errors are sanitized before being shown in the browser.
+* Uploaded files, database rows, and user credentials remain inside Supabase.
+* Secret keys must never be pasted into GitHub files.
+
+---
+
+## Deployment
+
+NovaGen is deployed using Vercel.
+
+Each push to the `main` branch automatically triggers a new Vercel deployment.
+
+Live link:
+
+https://novagen-ai-sigma.vercel.app
+
+---
+
+## Author
+
+**R. Genie Sharon**
