@@ -58,7 +58,7 @@ export function AttachmentChip({
 
           {attachment.status === "error" && (
             <span className="truncate text-red-500">
-              {attachment.error || "Upload failed"}
+              {attachment.error || "Upload failed. Please try again."}
             </span>
           )}
         </div>

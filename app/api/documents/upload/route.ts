@@ -5,6 +5,7 @@ import {
 } from "@/lib/document-parser";
 import { chunkText } from "@/lib/chunker";
 import { generateDocumentEmbeddings } from "@/lib/embeddings";
+import { sanitizeFilename } from "@/lib/sanitize";
 
 export const runtime = "nodejs";
 
@@ -90,9 +91,17 @@ export async function POST(request: Request) {
     stage = "preparing file path";
     const buffer = Buffer.from(await file.arrayBuffer());
     const documentId = crypto.randomUUID();
-    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const safeFilename = sanitizeFilename(file.name);
+    const uniqueId = crypto.randomUUID();
     const storagePath =
-      `${user.id}/${threadId}/${documentId}/${safeFileName}`;
+      `${user.id}/${threadId}/${uniqueId}-${safeFilename}`;
+
+    console.log(
+      "UPLOAD_DEBUG: original filename =",
+      file.name,
+      "| safe path =",
+      storagePath
+    );
 
     stage = "uploading file to Supabase Storage";
     const { error: storageError } = await supabase.storage
@@ -132,18 +141,30 @@ export async function POST(request: Request) {
     let text: string;
     try {
       text = await extractText(buffer, normalizedMimeType);
-    } catch (err) {
+    } catch {
       await supabase.storage.from("documents").remove([storagePath]);
       await supabase.from("documents").delete().eq("id", documentId);
+      const isPdf =
+        normalizedMimeType === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf");
       throw new Error(
-        err instanceof Error ? err.message : "Text extraction failed"
+        isPdf
+          ? "This PDF could not be read. Please upload a text-based PDF."
+          : "Text extraction failed"
       );
     }
 
     if (!text) {
       await supabase.storage.from("documents").remove([storagePath]);
       await supabase.from("documents").delete().eq("id", documentId);
-      throw new Error("No text could be extracted from the file");
+      const isPdf =
+        normalizedMimeType === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf");
+      throw new Error(
+        isPdf
+          ? "This PDF could not be read. Please upload a text-based PDF."
+          : "No text could be extracted from the file"
+      );
     }
 
     stage = "chunking extracted text";
@@ -233,9 +254,14 @@ export async function POST(request: Request) {
       "sensitive information redacted"
     );
 
+    const safeMessage =
+      stage === "uploading file to Supabase Storage"
+        ? "Upload failed. Please try again."
+        : `Upload failed during ${stage}: ${message}`;
+
     return Response.json(
       {
-        error: `Upload failed during ${stage}: ${message}`,
+        error: safeMessage,
       },
       { status: 500 }
     );

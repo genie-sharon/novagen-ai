@@ -34,3 +34,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Supplementary Django Backend
+
+The repository includes a small Django companion API under `django_backend/`. This is a supplementary module for internship requirements and **does not replace** the production NovaGen application, which remains Next.js-based with TypeScript, Supabase, and Gemini AI.
+
+Features:
+
+- **Document validation service** — validates file types, extensions, and sizes
+- **JSON API endpoints** — health check, document types, document validation
+- **Django automated tests** — 18 tests covering all validation scenarios
+- **Pylint validation** — configured with `pylint-django`, score above 9/10
+
+See `django_backend/README.md` for setup and usage.

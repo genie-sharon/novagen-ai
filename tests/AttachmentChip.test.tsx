@@ -54,7 +54,7 @@ describe("AttachmentChip", () => {
 
   it("shows default error text when error is empty", () => {
     renderChip({ status: "error", error: undefined });
-    expect(screen.getByText("Upload failed")).toBeInTheDocument();
+    expect(screen.getByText("Upload failed. Please try again.")).toBeInTheDocument();
   });
 
   it("calls onRemove when remove button is clicked", async () => {

@@ -42,6 +42,9 @@ export default defineConfig({
         "**/tailwind.config.ts",
         "**/postcss.config.mjs",
         "**/scripts/**",
+        "django_backend/**",
+        "**/.venv/**",
+        "**/site-packages/**",
       ],
       thresholds: {
         statements: 80,

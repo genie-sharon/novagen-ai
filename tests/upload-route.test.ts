@@ -132,7 +132,7 @@ describe("POST /api/documents/upload", () => {
                   name: "test.txt",
                   size: 100,
                   type: "text/plain",
-                  storage_path: "user-1/thread-1/doc-1/test.txt",
+                  storage_path: "user-1/thread-1/uuid-test.txt",
                   indexed: true,
                   chunkCount: 1,
                 },
@@ -191,7 +191,7 @@ describe("POST /api/documents/upload", () => {
     expect(body.error).toContain("threadId is missing");
   });
 
-  it("returns 401 for unauthenticated request", async () => {
+  it("returns 500 for unauthenticated request", async () => {
     mockAuthGetUser.mockResolvedValue({
       data: { user: null },
       error: { message: "No logged-in user" },
@@ -338,6 +338,7 @@ describe("POST /api/documents/upload", () => {
     const file = new File(["test"], "../../malicious.txt", { type: "text/plain" });
     await POST(mockRequest(file, "thread-1"));
     expect(capturedPath).not.toContain("/../");
+    expect(capturedPath).not.toContain("//");
   });
 
   it("no secret values appear in errors", async () => {
@@ -348,11 +349,140 @@ describe("POST /api/documents/upload", () => {
 
     vi.mocked(extractText).mockRejectedValue(new Error("Details: GEMINI_API_KEY=sk-12345"));
 
-    const mockFromImpl = mockFrom;
     const file = new File(["test"], "test.txt", { type: "text/plain" });
     const res = await POST(mockRequest(file, "thread-1"));
     const body = await res.json();
     expect(body.error).not.toContain("GEMINI_API_KEY");
     expect(body.error).not.toContain("sk-12345");
+  });
+
+  it("same filename uploaded twice receives different Storage paths", async () => {
+    mockAuthGetUser.mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+
+    const capturedPaths: string[] = [];
+    mockStorageFrom.mockReturnValue({
+      upload: vi.fn((path: string) => {
+        capturedPaths.push(path);
+        return { error: null };
+      }),
+      remove: vi.fn().mockResolvedValue({ error: null }),
+    });
+
+    const file = new File(["test"], "duplicate.txt", { type: "text/plain" });
+    await POST(mockRequest(file, "thread-1"));
+    await POST(mockRequest(file, "thread-1"));
+
+    expect(capturedPaths.length).toBe(2);
+    expect(capturedPaths[0]).not.toBe(capturedPaths[1]);
+  });
+
+  it("filename with spaces and parentheses succeeds", async () => {
+    mockAuthGetUser.mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+
+    let capturedPath = "";
+    mockStorageFrom.mockReturnValue({
+      upload: vi.fn((path: string) => {
+        capturedPath = path;
+        return { error: null };
+      }),
+      remove: vi.fn().mockResolvedValue({ error: null }),
+    });
+
+    const file = new File(["test"], "Module 2 (1).pdf", { type: "application/pdf" });
+    vi.mocked(detectDocumentType).mockReturnValue("application/pdf");
+    const res = await POST(mockRequest(file, "thread-1"));
+    expect(res.status).toBe(200);
+    expect(capturedPath).toMatch(/module-2-1\.pdf$/);
+  });
+
+  it("Storage failure returns a safe browser message", async () => {
+    mockAuthGetUser.mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+
+    mockStorageFrom.mockReturnValue({
+      upload: vi.fn().mockResolvedValue({ error: { message: "The resource already exists" } }),
+      remove: vi.fn().mockResolvedValue({ error: null }),
+    });
+
+    const file = new File(["test"], "test.txt", { type: "text/plain" });
+    const res = await POST(mockRequest(file, "thread-1"));
+    const body = await res.json();
+    expect(body.error).toBe("Upload failed. Please try again.");
+  });
+
+  it("cleanup occurs after downstream failure (text extraction)", async () => {
+    mockAuthGetUser.mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+
+    const removeCalls: string[][] = [];
+    const deleteCalls: string[] = [];
+
+    mockStorageFrom.mockReturnValue({
+      upload: vi.fn().mockResolvedValue({ error: null }),
+      remove: vi.fn((paths: string[]) => {
+        removeCalls.push(paths);
+        return { error: null };
+      }),
+    });
+
+    const originalFromImpl = mockFrom.getMockImplementation();
+    mockFrom.mockImplementation((table: string) => {
+      if (table === "documents") {
+        return {
+          insert: vi.fn(() => ({
+            select: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: { id: "doc-1", name: "test.txt" },
+                error: null,
+              }),
+            })),
+          })),
+          delete: vi.fn(() => {
+            deleteCalls.push("documents");
+            return { eq: vi.fn() };
+          }),
+        };
+      }
+      if (typeof originalFromImpl === "function") {
+        return originalFromImpl(table);
+      }
+      return { select: vi.fn(() => ({ eq: vi.fn(), order: vi.fn() })) };
+    });
+
+    vi.mocked(extractText).mockRejectedValue(new Error("Extraction crashed"));
+
+    const file = new File(["test"], "test.txt", { type: "text/plain" });
+    const res = await POST(mockRequest(file, "thread-1"));
+    expect(res.status).toBe(500);
+
+    // Storage remove should have been called
+    expect(removeCalls.length).toBeGreaterThanOrEqual(1);
+    // Document delete should have been called
+    expect(deleteCalls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("PDF extraction failure returns safe browser message", async () => {
+    mockAuthGetUser.mockResolvedValue({
+      data: { user: { id: "user-1" } },
+      error: null,
+    });
+
+    vi.mocked(detectDocumentType).mockReturnValue("application/pdf");
+    vi.mocked(extractText).mockRejectedValue(new Error("pdf-parse: could not parse"));
+
+    const file = new File(["test"], "doc.pdf", { type: "application/pdf" });
+    const res = await POST(mockRequest(file, "thread-1"));
+    const body = await res.json();
+    expect(body.error).toContain("This PDF could not be read");
   });
 });

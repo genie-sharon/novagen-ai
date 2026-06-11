@@ -27,6 +27,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env.*
 
 # vercel
 .vercel
@@ -42,3 +43,12 @@ coverage/
 playwright-report/
 test-results/
 *.log
+
+# Django local files
+django_backend/.venv/
+django_backend/db.sqlite3
+__pycache__/
+*.pyc
+.pytest_cache/
+# Local internship report logs
+reports/
